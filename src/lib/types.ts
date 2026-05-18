@@ -7,6 +7,7 @@ export type SiteSettings = {
   currency: string;
   heroTitle: string;
   heroCopy: string;
+  heroImage: string;
   announcement: string;
   primaryCta: string;
   secondaryCta: string;

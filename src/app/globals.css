@@ -142,6 +142,24 @@ select {
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+.hero-banner-image {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+}
+
+.tee-poster:has(.hero-banner-image)::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.04), rgba(0, 0, 0, 0.42)),
+    radial-gradient(circle at 80% 18%, rgba(46, 232, 121, 0.16), transparent 28%);
+  pointer-events: none;
+}
+
 .poster-print {
   position: absolute;
   left: 50%;

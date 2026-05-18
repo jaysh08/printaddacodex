@@ -106,9 +106,17 @@ export default async function Home() {
               </div>
               <div className="tee-poster">
                 <div className="poster-glow" />
-                <div className="poster-tee">
-                  <div className="poster-print">ADDΛ</div>
-                </div>
+                {settings.heroImage ? (
+                  <img
+                    src={settings.heroImage}
+                    alt={`${settings.brandName} custom T-shirt banner`}
+                    className="hero-banner-image"
+                  />
+                ) : (
+                  <div className="poster-tee">
+                    <div className="poster-print">ADDA</div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

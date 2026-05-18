@@ -13,6 +13,7 @@ const defaultSettings: SiteSettings = {
   heroTitle: "Your tee should talk before you do.",
   heroCopy:
     "Choose a blank fit, pick a print, or reserve a ready design. We confirm on WhatsApp and keep it ready for 24-hour local pickup.",
+  heroImage: "",
   announcement: "New drops, blank tees, custom prints",
   primaryCta: "Explore catalogue",
   secondaryCta: "Reserve on WhatsApp",
@@ -105,6 +106,7 @@ function rowToSettings(row: Record<string, string>): SiteSettings {
     currency: row.currency,
     heroTitle: row.hero_title,
     heroCopy: row.hero_copy,
+    heroImage: row.hero_image ?? "",
     announcement: row.announcement,
     primaryCta: row.primary_cta,
     secondaryCta: row.secondary_cta,
@@ -162,6 +164,7 @@ export async function ensureStore() {
       currency text NOT NULL,
       hero_title text NOT NULL,
       hero_copy text NOT NULL,
+      hero_image text NOT NULL DEFAULT '',
       announcement text NOT NULL,
       primary_cta text NOT NULL,
       secondary_cta text NOT NULL,
@@ -169,6 +172,11 @@ export async function ensureStore() {
       instagram text NOT NULL DEFAULT '',
       updated_at timestamptz NOT NULL DEFAULT now()
     )
+  `;
+
+  await sql`
+    ALTER TABLE site_settings
+    ADD COLUMN IF NOT EXISTS hero_image text NOT NULL DEFAULT ''
   `;
 
   await sql`
@@ -212,7 +220,7 @@ export async function ensureStore() {
     await sql`
       INSERT INTO site_settings (
         id, brand_name, tagline, whatsapp_number, pickup_area, shop_hours,
-        currency, hero_title, hero_copy, announcement, primary_cta,
+        currency, hero_title, hero_copy, hero_image, announcement, primary_cta,
         secondary_cta, pickup_note, instagram
       )
       VALUES (
@@ -220,6 +228,7 @@ export async function ensureStore() {
         ${defaultSettings.whatsappNumber}, ${defaultSettings.pickupArea},
         ${defaultSettings.shopHours}, ${defaultSettings.currency},
         ${defaultSettings.heroTitle}, ${defaultSettings.heroCopy},
+        ${defaultSettings.heroImage},
         ${defaultSettings.announcement}, ${defaultSettings.primaryCta},
         ${defaultSettings.secondaryCta}, ${defaultSettings.pickupNote},
         ${defaultSettings.instagram}
@@ -300,6 +309,7 @@ export async function saveSettings(settings: SiteSettings) {
       currency = ${settings.currency},
       hero_title = ${settings.heroTitle},
       hero_copy = ${settings.heroCopy},
+      hero_image = ${settings.heroImage ?? ""},
       announcement = ${settings.announcement},
       primary_cta = ${settings.primaryCta},
       secondary_cta = ${settings.secondaryCta},

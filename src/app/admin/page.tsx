@@ -25,6 +25,7 @@ const blankSettings: SiteSettings = {
   currency: "₹",
   heroTitle: "",
   heroCopy: "",
+  heroImage: "",
   announcement: "",
   primaryCta: "",
   secondaryCta: "",
@@ -160,6 +161,16 @@ export default function AdminPage() {
     reader.readAsDataURL(file);
   }
 
+  async function handleHeroImage(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      updateSettings("heroImage", String(reader.result));
+    };
+    reader.readAsDataURL(file);
+  }
+
   if (!authed) {
     return (
       <main className="admin-shell grid place-items-center px-4">
@@ -232,6 +243,25 @@ export default function AdminPage() {
               </div>
               <label className="admin-label">Hero title<textarea className="admin-input min-h-24" value={settings.heroTitle} onChange={(e) => updateSettings("heroTitle", e.target.value)} /></label>
               <label className="admin-label">Hero copy<textarea className="admin-input min-h-24" value={settings.heroCopy} onChange={(e) => updateSettings("heroCopy", e.target.value)} /></label>
+              <div className="grid gap-3">
+                <label className="admin-label">Homepage custom T-shirt banner image URL<textarea className="admin-input min-h-20" value={settings.heroImage} onChange={(e) => updateSettings("heroImage", e.target.value)} /></label>
+                {settings.heroImage ? (
+                  <div className="overflow-hidden border border-stone-300 bg-black">
+                    <img src={settings.heroImage} alt="Homepage banner preview" className="h-40 w-full object-cover" />
+                  </div>
+                ) : null}
+                <div className="flex flex-wrap gap-2">
+                  <label className="inline-flex h-12 flex-1 cursor-pointer items-center justify-center gap-2 border border-dashed border-black px-4 text-xs font-black uppercase tracking-[0.14em]">
+                    <ImagePlus size={18} /> Upload homepage banner
+                    <input type="file" accept="image/*" className="hidden" onChange={handleHeroImage} />
+                  </label>
+                  {settings.heroImage ? (
+                    <button onClick={() => updateSettings("heroImage", "")} className="admin-secondary">
+                      Clear image
+                    </button>
+                  ) : null}
+                </div>
+              </div>
               <div className="grid gap-4 md:grid-cols-2">
                 <label className="admin-label">Announcement<input className="admin-input" value={settings.announcement} onChange={(e) => updateSettings("announcement", e.target.value)} /></label>
                 <label className="admin-label">Currency<input className="admin-input" value={settings.currency} onChange={(e) => updateSettings("currency", e.target.value)} /></label>
