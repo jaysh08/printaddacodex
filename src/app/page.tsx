@@ -1,4 +1,5 @@
 import { ArrowRight, Clock3, MapPin, MessageCircle, Sparkles } from "lucide-react";
+import { CustomPrintStudio } from "@/components/custom-print-studio";
 import { getStoreData } from "@/lib/store";
 import { whatsappHref } from "@/lib/whatsapp";
 import type { Product } from "@/lib/types";
@@ -43,6 +44,7 @@ export default async function Home() {
             </span>
           </a>
           <div className="hidden items-center gap-8 text-xs font-bold uppercase tracking-[0.24em] text-stone-400 md:flex">
+            <a href="#custom-print" className="hover:text-white">Custom print</a>
             <a href="#catalogue" className="hover:text-white">Catalogue</a>
             <a href="#blank-tees" className="hover:text-white">Blank tees</a>
             <a href="#pickup" className="hover:text-white">Pickup</a>
@@ -122,6 +124,13 @@ export default async function Home() {
           </div>
         </div>
       </section>
+
+      <CustomPrintStudio
+        brandName={settings.brandName}
+        pickupArea={settings.pickupArea}
+        shopHours={settings.shopHours}
+        whatsappNumber={settings.whatsappNumber}
+      />
 
       <section id="catalogue" className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
         <div className="section-heading">
