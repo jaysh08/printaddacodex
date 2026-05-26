@@ -6,15 +6,17 @@ import {
   ImagePlus,
   Loader2,
   LogOut,
+  MessageCircle,
   Plus,
   Save,
   Settings,
   Shirt,
+  ShoppingBag,
   Tags,
   Trash2,
 } from "lucide-react";
 import Link from "next/link";
-import type { Category, Product, SiteSettings, StoreData } from "@/lib/types";
+import type { Category, Order, OrderStatus, Product, SiteSettings, StoreData } from "@/lib/types";
 
 const blankSettings: SiteSettings = {
   brandName: "",
@@ -53,6 +55,8 @@ const newProduct: Product = {
   sortOrder: 0,
 };
 
+const orderStatuses: OrderStatus[] = ["New", "Confirmed", "Ready", "Picked Up", "Cancelled"];
+
 function splitList(value: string) {
   return value
     .split(",")
@@ -78,9 +82,17 @@ export default function AdminPage() {
   });
   const [status, setStatus] = useState("Enter admin password to manage the store.");
   const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<"catalogue" | "orders">("catalogue");
+  const [orderFilter, setOrderFilter] = useState<"all" | "catalogue" | "custom">("all");
 
   const authed = Boolean(savedPassword);
   const settings = data?.settings ?? blankSettings;
+  const orders = useMemo(() => {
+    const allOrders = data?.orders ?? [];
+    return orderFilter === "all"
+      ? allOrders
+      : allOrders.filter((order) => order.orderType === orderFilter);
+  }, [data?.orders, orderFilter]);
 
   useEffect(() => {
     const stored = sessionStorage.getItem("print-adda-admin");
@@ -150,6 +162,12 @@ export default function AdminPage() {
   }
 
   const categoryOptions = useMemo(() => data?.categories ?? [], [data]);
+
+  function orderWhatsAppUrl(order: Order) {
+    const phone = (order.customerPhone || settings.whatsappNumber).replace(/[^\d]/g, "");
+    const message = order.whatsappMessage || `Hi ${settings.brandName}, checking order ${order.orderCode}.`;
+    return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+  }
 
   async function handleImage(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -230,6 +248,22 @@ export default function AdminPage() {
         </div>
       </header>
 
+      <div className="mx-auto flex max-w-7xl gap-2 px-4 pt-6 sm:px-6 lg:px-8">
+        <button
+          onClick={() => setActiveTab("catalogue")}
+          className={`admin-tab ${activeTab === "catalogue" ? "active" : ""}`}
+        >
+          <Shirt size={17} /> Catalogue
+        </button>
+        <button
+          onClick={() => setActiveTab("orders")}
+          className={`admin-tab ${activeTab === "orders" ? "active" : ""}`}
+        >
+          <ShoppingBag size={17} /> Orders ({data?.orders?.length ?? 0})
+        </button>
+      </div>
+
+      {activeTab === "catalogue" ? (
       <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
         <section className="space-y-6">
           <Panel title="Business + Homepage" icon={<Settings size={20} />}>
@@ -237,6 +271,7 @@ export default function AdminPage() {
               <label className="admin-label">Brand name<input className="admin-input" value={settings.brandName} onChange={(e) => updateSettings("brandName", e.target.value)} /></label>
               <label className="admin-label">Tagline<input className="admin-input" value={settings.tagline} onChange={(e) => updateSettings("tagline", e.target.value)} /></label>
               <label className="admin-label">WhatsApp number<input className="admin-input" value={settings.whatsappNumber} onChange={(e) => updateSettings("whatsappNumber", e.target.value)} /></label>
+              <label className="admin-label">Instagram link<input className="admin-input" value={settings.instagram} onChange={(e) => updateSettings("instagram", e.target.value)} placeholder="https://www.instagram.com/theprintadda2k26" /></label>
               <div className="grid gap-4 md:grid-cols-2">
                 <label className="admin-label">Pickup area<input className="admin-input" value={settings.pickupArea} onChange={(e) => updateSettings("pickupArea", e.target.value)} /></label>
                 <label className="admin-label">Shop hours<input className="admin-input" value={settings.shopHours} onChange={(e) => updateSettings("shopHours", e.target.value)} /></label>
@@ -384,6 +419,98 @@ export default function AdminPage() {
           </Panel>
         </section>
       </div>
+      ) : (
+        <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+          <Panel title="Orders" icon={<ShoppingBag size={20} />}>
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap gap-2">
+                {(["all", "catalogue", "custom"] as const).map((filter) => (
+                  <button
+                    key={filter}
+                    onClick={() => setOrderFilter(filter)}
+                    className={`admin-filter ${orderFilter === filter ? "active" : ""}`}
+                  >
+                    {filter}
+                  </button>
+                ))}
+              </div>
+              <button onClick={() => load()} className="admin-secondary">
+                Refresh
+              </button>
+            </div>
+
+            {orders.length === 0 ? (
+              <div className="border border-dashed border-stone-300 p-8 text-center text-stone-600">
+                No orders yet. Once a customer reserves from the site, the order will appear here.
+              </div>
+            ) : (
+              <div className="grid gap-4">
+                {orders.map((order) => (
+                  <article key={order.id} className="border border-stone-300 bg-white/60 p-4">
+                    <div className="grid gap-4 lg:grid-cols-[1fr_auto]">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="bg-black px-2 py-1 text-xs font-black uppercase tracking-[0.12em] text-lime-300">
+                            {order.orderCode}
+                          </span>
+                          <span className="border border-stone-300 px-2 py-1 text-xs font-black uppercase tracking-[0.12em]">
+                            {order.orderType}
+                          </span>
+                          <span className="text-xs font-bold text-stone-600">
+                            {new Date(order.createdAt).toLocaleString()}
+                          </span>
+                        </div>
+                        <h3 className="mt-3 text-2xl font-black uppercase">
+                          {order.orderType === "custom"
+                            ? order.artworkName || "Custom print"
+                            : order.productName || "Catalogue order"}
+                        </h3>
+                        <p className="mt-1 text-sm text-stone-600">
+                          {order.orderType === "custom"
+                            ? `${order.placement || "Front"} · ${order.shirtColor || "No color"} · ${order.printSize}% size`
+                            : `${order.productCode} · ${settings.currency}${order.price} · ${order.size || "Size pending"} · ${order.color || "Color pending"}`}
+                        </p>
+                        <p className="mt-2 text-sm text-stone-700">
+                          Customer: {order.customerName || "Not provided"}
+                          {order.customerPhone ? ` · ${order.customerPhone}` : ""}
+                        </p>
+                        {order.notes ? <p className="mt-2 text-sm text-stone-700">Notes: {order.notes}</p> : null}
+                      </div>
+
+                      {order.artworkPreview ? (
+                        <img src={order.artworkPreview} alt={order.artworkName} className="h-32 w-32 border border-stone-300 object-contain" />
+                      ) : null}
+                    </div>
+
+                    <div className="mt-4 flex flex-wrap gap-2 border-t border-stone-300 pt-4">
+                      <select
+                        className="admin-input max-w-52"
+                        value={order.status}
+                        onChange={(event) =>
+                          mutate(
+                            { action: "updateOrderStatus", id: order.id, status: event.target.value },
+                            "Order status updated.",
+                          )
+                        }
+                      >
+                        {orderStatuses.map((item) => (
+                          <option key={item}>{item}</option>
+                        ))}
+                      </select>
+                      <a href={orderWhatsAppUrl(order)} target="_blank" rel="noreferrer" className="admin-save">
+                        <MessageCircle size={18} /> WhatsApp
+                      </a>
+                      <button onClick={() => mutate({ action: "deleteOrder", id: order.id }, "Order deleted.")} className="admin-danger">
+                        <Trash2 size={18} /> Delete
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </Panel>
+        </section>
+      )}
 
       <div className="fixed bottom-4 left-1/2 z-30 -translate-x-1/2 border border-black bg-[#fffaf0] px-4 py-3 text-sm font-bold shadow-xl">
         {loading ? "Working..." : status}

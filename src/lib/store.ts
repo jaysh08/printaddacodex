@@ -1,7 +1,17 @@
-import { neon } from "@neondatabase/serverless";
-import type { Category, Product, SiteSettings, StoreData } from "./types";
+import { neon, type NeonQueryFunction } from "@neondatabase/serverless";
+import type { Category, Order, OrderInput, OrderStatus, Product, SiteSettings, StoreData } from "./types";
 
-const sql = neon(process.env.DATABASE_URL ?? "");
+let sqlClient: NeonQueryFunction<false, false> | null = null;
+
+function getSql(): NeonQueryFunction<false, false> {
+  if (!process.env.DATABASE_URL) {
+    throw new Error("DATABASE_URL is missing");
+  }
+  if (!sqlClient) {
+    sqlClient = neon(process.env.DATABASE_URL);
+  }
+  return sqlClient;
+}
 
 const defaultSettings: SiteSettings = {
   brandName: "The Print Adda",
@@ -18,7 +28,7 @@ const defaultSettings: SiteSettings = {
   primaryCta: "Explore catalogue",
   secondaryCta: "Reserve on WhatsApp",
   pickupNote: "No delivery. Reserve on WhatsApp and collect within 24 hours.",
-  instagram: "",
+  instagram: "https://www.instagram.com/theprintadda2k26",
 };
 
 const seedCategories = [
@@ -148,10 +158,45 @@ function rowToProduct(row: Record<string, unknown>): Product {
   };
 }
 
+function rowToOrder(row: Record<string, unknown>): Order {
+  return {
+    id: Number(row.id),
+    orderCode: String(row.order_code),
+    orderType: String(row.order_type) as Order["orderType"],
+    status: String(row.status) as OrderStatus,
+    productId: row.product_id === null ? null : Number(row.product_id),
+    productName: String(row.product_name ?? ""),
+    productCode: String(row.product_code ?? ""),
+    categoryName: String(row.category_name ?? ""),
+    price: Number(row.price ?? 0),
+    customerName: String(row.customer_name ?? ""),
+    customerPhone: String(row.customer_phone ?? ""),
+    size: String(row.size ?? ""),
+    color: String(row.color ?? ""),
+    placement: String(row.placement ?? ""),
+    shirtColor: String(row.shirt_color ?? ""),
+    artworkName: String(row.artwork_name ?? ""),
+    artworkPreview: String(row.artwork_preview ?? ""),
+    printSize: Number(row.print_size ?? 0),
+    cropZoom: Number(row.crop_zoom ?? 0),
+    positionX: Number(row.position_x ?? 0),
+    positionY: Number(row.position_y ?? 0),
+    notes: String(row.notes ?? ""),
+    whatsappMessage: String(row.whatsapp_message ?? ""),
+    createdAt: String(row.created_at ?? ""),
+    updatedAt: String(row.updated_at ?? ""),
+  };
+}
+
+function makeOrderCode() {
+  return `TPA-${Date.now().toString(36).toUpperCase().slice(-6)}-${Math.random()
+    .toString(36)
+    .slice(2, 5)
+    .toUpperCase()}`;
+}
+
 export async function ensureStore() {
-  if (!process.env.DATABASE_URL) {
-    throw new Error("DATABASE_URL is missing");
-  }
+  const sql = getSql();
 
   await sql`
     CREATE TABLE IF NOT EXISTS site_settings (
@@ -177,6 +222,23 @@ export async function ensureStore() {
   await sql`
     ALTER TABLE site_settings
     ADD COLUMN IF NOT EXISTS hero_image text NOT NULL DEFAULT ''
+  `;
+
+  await sql`
+    ALTER TABLE site_settings
+    ADD COLUMN IF NOT EXISTS instagram text NOT NULL DEFAULT ''
+  `;
+
+  await sql`
+    UPDATE site_settings
+    SET instagram = ${defaultSettings.instagram}
+    WHERE id = 1 AND instagram = ''
+  `;
+
+  await sql`
+    UPDATE site_settings
+    SET currency = '₹'
+    WHERE id = 1 AND currency LIKE 'â%'
   `;
 
   await sql`
@@ -215,6 +277,36 @@ export async function ensureStore() {
     )
   `;
 
+  await sql`
+    CREATE TABLE IF NOT EXISTS orders (
+      id serial PRIMARY KEY,
+      order_code text NOT NULL UNIQUE,
+      order_type text NOT NULL DEFAULT 'catalogue',
+      status text NOT NULL DEFAULT 'New',
+      product_id integer REFERENCES products(id) ON DELETE SET NULL,
+      product_name text NOT NULL DEFAULT '',
+      product_code text NOT NULL DEFAULT '',
+      category_name text NOT NULL DEFAULT '',
+      price integer NOT NULL DEFAULT 0,
+      customer_name text NOT NULL DEFAULT '',
+      customer_phone text NOT NULL DEFAULT '',
+      size text NOT NULL DEFAULT '',
+      color text NOT NULL DEFAULT '',
+      placement text NOT NULL DEFAULT '',
+      shirt_color text NOT NULL DEFAULT '',
+      artwork_name text NOT NULL DEFAULT '',
+      artwork_preview text NOT NULL DEFAULT '',
+      print_size integer NOT NULL DEFAULT 0,
+      crop_zoom integer NOT NULL DEFAULT 0,
+      position_x integer NOT NULL DEFAULT 0,
+      position_y integer NOT NULL DEFAULT 0,
+      notes text NOT NULL DEFAULT '',
+      whatsapp_message text NOT NULL DEFAULT '',
+      created_at timestamptz NOT NULL DEFAULT now(),
+      updated_at timestamptz NOT NULL DEFAULT now()
+    )
+  `;
+
   const settingsRows = await sql`SELECT id FROM site_settings WHERE id = 1`;
   if (settingsRows.length === 0) {
     await sql`
@@ -226,7 +318,7 @@ export async function ensureStore() {
       VALUES (
         1, ${defaultSettings.brandName}, ${defaultSettings.tagline},
         ${defaultSettings.whatsappNumber}, ${defaultSettings.pickupArea},
-        ${defaultSettings.shopHours}, ${defaultSettings.currency},
+        ${defaultSettings.shopHours}, ${"₹"},
         ${defaultSettings.heroTitle}, ${defaultSettings.heroCopy},
         ${defaultSettings.heroImage},
         ${defaultSettings.announcement}, ${defaultSettings.primaryCta},
@@ -271,6 +363,7 @@ export async function ensureStore() {
 
 export async function getStoreData(includeInactive = false): Promise<StoreData> {
   await ensureStore();
+  const sql = getSql();
   const settingsRows = await sql`SELECT * FROM site_settings WHERE id = 1`;
   const categoriesRows = includeInactive
     ? await sql`SELECT * FROM categories ORDER BY sort_order, name`
@@ -290,15 +383,23 @@ export async function getStoreData(includeInactive = false): Promise<StoreData> 
         ORDER BY p.sort_order, p.created_at DESC
       `;
 
-  return {
+  const data: StoreData = {
     settings: rowToSettings(settingsRows[0] as Record<string, string>),
     categories: categoriesRows.map((row) => rowToCategory(row as Record<string, unknown>)),
     products: productRows.map((row) => rowToProduct(row as Record<string, unknown>)),
   };
+
+  if (includeInactive) {
+    const orderRows = await sql`SELECT * FROM orders ORDER BY created_at DESC, id DESC`;
+    data.orders = orderRows.map((row) => rowToOrder(row as Record<string, unknown>));
+  }
+
+  return data;
 }
 
 export async function saveSettings(settings: SiteSettings) {
   await ensureStore();
+  const sql = getSql();
   await sql`
     UPDATE site_settings SET
       brand_name = ${settings.brandName},
@@ -322,6 +423,7 @@ export async function saveSettings(settings: SiteSettings) {
 
 export async function upsertCategory(category: Partial<Category>) {
   await ensureStore();
+  const sql = getSql();
   const slug = category.slug || slugify(category.name ?? "category");
   if (category.id) {
     await sql`
@@ -345,11 +447,13 @@ export async function upsertCategory(category: Partial<Category>) {
 
 export async function deleteCategory(id: number) {
   await ensureStore();
+  const sql = getSql();
   await sql`DELETE FROM categories WHERE id = ${id}`;
 }
 
 export async function upsertProduct(product: Partial<Product>) {
   await ensureStore();
+  const sql = getSql();
   const code = product.code || `TPA-${Date.now().toString().slice(-5)}`;
   if (product.id) {
     await sql`
@@ -395,5 +499,48 @@ export async function upsertProduct(product: Partial<Product>) {
 
 export async function deleteProduct(id: number) {
   await ensureStore();
+  const sql = getSql();
   await sql`DELETE FROM products WHERE id = ${id}`;
+}
+
+export async function createOrder(input: OrderInput) {
+  await ensureStore();
+  const sql = getSql();
+  const orderCode = makeOrderCode();
+  const whatsappMessage = (input.whatsappMessage ?? "").replaceAll("{{ORDER_CODE}}", orderCode);
+  const rows = await sql`
+    INSERT INTO orders (
+      order_code, order_type, product_id, product_name, product_code,
+      category_name, price, customer_name, customer_phone, size, color,
+      placement, shirt_color, artwork_name, artwork_preview, print_size,
+      crop_zoom, position_x, position_y, notes, whatsapp_message
+    )
+    VALUES (
+      ${orderCode}, ${input.orderType}, ${input.productId ?? null},
+      ${input.productName ?? ""}, ${input.productCode ?? ""},
+      ${input.categoryName ?? ""}, ${input.price ?? 0},
+      ${input.customerName ?? ""}, ${input.customerPhone ?? ""},
+      ${input.size ?? ""}, ${input.color ?? ""}, ${input.placement ?? ""},
+      ${input.shirtColor ?? ""}, ${input.artworkName ?? ""},
+      ${input.artworkPreview ?? ""}, ${input.printSize ?? 0},
+      ${input.cropZoom ?? 0}, ${input.positionX ?? 0},
+      ${input.positionY ?? 0}, ${input.notes ?? ""},
+      ${whatsappMessage}
+    )
+    RETURNING *
+  `;
+
+  return rowToOrder(rows[0] as Record<string, unknown>);
+}
+
+export async function updateOrderStatus(id: number, status: OrderStatus) {
+  await ensureStore();
+  const sql = getSql();
+  await sql`UPDATE orders SET status = ${status}, updated_at = now() WHERE id = ${id}`;
+}
+
+export async function deleteOrder(id: number) {
+  await ensureStore();
+  const sql = getSql();
+  await sql`DELETE FROM orders WHERE id = ${id}`;
 }

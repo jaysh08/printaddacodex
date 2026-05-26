@@ -1,13 +1,12 @@
 "use client";
 
 import { ChangeEvent, useMemo, useState } from "react";
-import { ArrowRight, ImagePlus, MessageCircle, Move, RotateCcw, Scissors } from "lucide-react";
+import { ArrowRight, ImagePlus, Loader2, MessageCircle, Move, RotateCcw, Scissors } from "lucide-react";
 
 type CustomPrintStudioProps = {
   brandName: string;
   pickupArea: string;
   shopHours: string;
-  whatsappNumber: string;
 };
 
 const shirtColors = [
@@ -21,7 +20,6 @@ export function CustomPrintStudio({
   brandName,
   pickupArea,
   shopHours,
-  whatsappNumber,
 }: CustomPrintStudioProps) {
   const [artwork, setArtwork] = useState("");
   const [artworkName, setArtworkName] = useState("my-custom-print");
@@ -31,24 +29,19 @@ export function CustomPrintStudio({
   const [zoom, setZoom] = useState(100);
   const [x, setX] = useState(0);
   const [y, setY] = useState(0);
+  const [customerName, setCustomerName] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [notes, setNotes] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  const cleanPhone = whatsappNumber.replace(/[^\d]/g, "");
-  const reserveHref = useMemo(() => {
+  const colorName = useMemo(() => {
+    return shirtColors.find((color) => color.value === shirtColor)?.label ?? "Black";
+  }, [shirtColor]);
+
+  const previewSummary = useMemo(() => {
     const colorName = shirtColors.find((color) => color.value === shirtColor)?.label ?? "Black";
-    const message = [
-      `Hi ${brandName}, I want a custom print.`,
-      `Artwork name: ${artworkName || "not named yet"}`,
-      `Placement: ${placement}`,
-      `T-shirt color: ${colorName}`,
-      `Print size: ${size}%`,
-      `Crop zoom: ${zoom}%`,
-      `Position: X ${x}, Y ${y}`,
-      `Pickup: ${pickupArea}, ${shopHours}`,
-      "I will send the artwork image in this chat.",
-    ].join("\n");
-
-    return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
-  }, [artworkName, brandName, cleanPhone, pickupArea, placement, shirtColor, shopHours, size, x, y, zoom]);
+    return `${placement}, ${colorName}, ${size}% size, ${zoom}% crop`;
+  }, [placement, shirtColor, size, zoom]);
 
   function handleUpload(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -70,6 +63,37 @@ export function CustomPrintStudio({
     setPlacement("Front");
   }
 
+  async function reserveCustomPrint() {
+    setSaving(true);
+    try {
+      const response = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          orderType: "custom",
+          customerName,
+          customerPhone,
+          placement,
+          shirtColor: colorName,
+          artworkName,
+          artworkPreview: artwork,
+          printSize: size,
+          cropZoom: zoom,
+          positionX: x,
+          positionY: y,
+          notes,
+        }),
+      });
+      if (!response.ok) {
+        throw new Error("Could not save custom order.");
+      }
+      const result = (await response.json()) as { whatsappUrl: string };
+      window.open(result.whatsappUrl, "_blank", "noopener,noreferrer");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
     <section id="custom-print" className="custom-studio-section">
       <div className="mx-auto grid max-w-7xl gap-8 px-4 py-16 sm:px-6 lg:grid-cols-[0.92fr_1.08fr] lg:px-8">
@@ -77,7 +101,7 @@ export function CustomPrintStudio({
           <span className="eyebrow">Custom print studio</span>
           <h2>Upload it. Place it. Name it for pickup.</h2>
           <p>
-            Customers can preview their artwork on a tee before sending the order.
+            Customers can preview their artwork on a tee before sending the order to {brandName}.
             The artwork name and layout notes go straight into WhatsApp so the admin can identify it fast.
           </p>
 
@@ -136,7 +160,7 @@ export function CustomPrintStudio({
             </div>
 
             <p className="studio-note">
-              This preview helps with placement. WhatsApp cannot attach the image automatically, so send the artwork file after opening the chat.
+              This preview helps with placement. Pickup is from {pickupArea} during {shopHours}. WhatsApp cannot attach the image automatically, so send the artwork file after opening the chat.
             </p>
           </div>
 
@@ -155,6 +179,25 @@ export function CustomPrintStudio({
                 placeholder="e.g. Jay skull front print"
               />
             </label>
+
+            <div className="studio-grid">
+              <label className="studio-field">
+                Customer name
+                <input
+                  value={customerName}
+                  onChange={(event) => setCustomerName(event.target.value)}
+                  placeholder="Name for the order"
+                />
+              </label>
+              <label className="studio-field">
+                Phone
+                <input
+                  value={customerPhone}
+                  onChange={(event) => setCustomerPhone(event.target.value)}
+                  placeholder="Optional phone number"
+                />
+              </label>
+            </div>
 
             <div className="studio-grid">
               <label className="studio-field">
@@ -182,10 +225,19 @@ export function CustomPrintStudio({
             <Slider label="Move left / right" value={x} min={-80} max={80} suffix="px" onChange={setX} />
             <Slider label="Move up / down" value={y} min={-80} max={80} suffix="px" onChange={setY} />
 
-            <a href={reserveHref} className="studio-reserve" target="_blank" rel="noreferrer">
-              Reserve custom print
-              <ArrowRight size={18} />
-            </a>
+            <label className="studio-field">
+              Notes
+              <textarea
+                value={notes}
+                onChange={(event) => setNotes(event.target.value)}
+                placeholder={`Layout: ${previewSummary}`}
+              />
+            </label>
+
+            <button type="button" onClick={reserveCustomPrint} disabled={saving} className="studio-reserve disabled:opacity-60">
+              {saving ? <Loader2 className="animate-spin" size={18} /> : <ArrowRight size={18} />}
+              Save order and open WhatsApp
+            </button>
           </div>
         </div>
       </div>

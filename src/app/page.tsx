@@ -1,5 +1,6 @@
-import { ArrowRight, Clock3, MapPin, MessageCircle, Sparkles } from "lucide-react";
+import { ArrowRight, AtSign, Clock3, MapPin, MessageCircle, Sparkles } from "lucide-react";
 import { CustomPrintStudio } from "@/components/custom-print-studio";
+import { ProductReserveButton } from "@/components/product-reserve-button";
 import { getStoreData } from "@/lib/store";
 import { whatsappHref } from "@/lib/whatsapp";
 import type { Product } from "@/lib/types";
@@ -48,11 +49,17 @@ export default async function Home() {
             <a href="#catalogue" className="hover:text-white">Catalogue</a>
             <a href="#blank-tees" className="hover:text-white">Blank tees</a>
             <a href="#pickup" className="hover:text-white">Pickup</a>
+            <a href={settings.instagram} target="_blank" rel="noreferrer" className="hover:text-white">Instagram</a>
           </div>
-          <a href={whatsappHref(settings)} className="btn-green">
-            <MessageCircle size={18} />
-            WhatsApp
-          </a>
+          <div className="flex items-center gap-2">
+            <a href={settings.instagram} target="_blank" rel="noreferrer" className="icon-link" aria-label="Instagram">
+              <AtSign size={18} />
+            </a>
+            <a href={whatsappHref(settings)} className="btn-green">
+              <MessageCircle size={18} />
+              WhatsApp
+            </a>
+          </div>
         </nav>
       </header>
 
@@ -129,7 +136,6 @@ export default async function Home() {
         brandName={settings.brandName}
         pickupArea={settings.pickupArea}
         shopHours={settings.shopHours}
-        whatsappNumber={settings.whatsappNumber}
       />
 
       <section id="catalogue" className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
@@ -179,9 +185,7 @@ export default async function Home() {
                   <span key={item}>{item}</span>
                 ))}
               </div>
-              <a href={whatsappHref(settings, product)} className="reserve-link">
-                Reserve this <MessageCircle size={17} />
-              </a>
+              <ProductReserveButton product={product} settings={settings} />
             </article>
           ))}
         </div>
@@ -232,7 +236,12 @@ export default async function Home() {
             <strong className="block text-lg uppercase tracking-[0.18em] text-white">{settings.brandName}</strong>
             <span>{settings.tagline}</span>
           </div>
-          <a href="/admin" className="text-stone-500 hover:text-white">Admin</a>
+          <div className="flex flex-wrap items-center gap-4">
+            <a href={settings.instagram} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-stone-300 hover:text-white">
+              <AtSign size={17} /> @theprintadda2k26
+            </a>
+            <a href="/admin" className="text-stone-500 hover:text-white">Admin</a>
+          </div>
         </div>
       </footer>
     </main>

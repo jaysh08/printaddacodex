@@ -15,6 +15,43 @@ export type SiteSettings = {
   instagram: string;
 };
 
+export type OrderStatus = "New" | "Confirmed" | "Ready" | "Picked Up" | "Cancelled";
+
+export type OrderType = "catalogue" | "custom";
+
+export type Order = {
+  id: number;
+  orderCode: string;
+  orderType: OrderType;
+  status: OrderStatus;
+  productId: number | null;
+  productName: string;
+  productCode: string;
+  categoryName: string;
+  price: number;
+  customerName: string;
+  customerPhone: string;
+  size: string;
+  color: string;
+  placement: string;
+  shirtColor: string;
+  artworkName: string;
+  artworkPreview: string;
+  printSize: number;
+  cropZoom: number;
+  positionX: number;
+  positionY: number;
+  notes: string;
+  whatsappMessage: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type OrderInput = Partial<Omit<Order, "id" | "orderCode" | "status" | "createdAt" | "updatedAt">> & {
+  orderType: OrderType;
+  productId?: number | null;
+};
+
 export type Category = {
   id: number;
   name: string;
@@ -48,4 +85,5 @@ export type StoreData = {
   settings: SiteSettings;
   categories: Category[];
   products: Product[];
+  orders?: Order[];
 };

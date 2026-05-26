@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   deleteCategory,
+  deleteOrder,
   deleteProduct,
   getStoreData,
   saveSettings,
+  updateOrderStatus,
   upsertCategory,
   upsertProduct,
 } from "@/lib/store";
+import type { OrderStatus } from "@/lib/types";
 
 function isAuthed(request: NextRequest) {
   const expected = process.env.ADMIN_PASSWORD || "printadda-admin";
@@ -40,6 +43,12 @@ export async function POST(request: NextRequest) {
   }
   if (body.action === "deleteProduct") {
     await deleteProduct(Number(body.id));
+  }
+  if (body.action === "updateOrderStatus") {
+    await updateOrderStatus(Number(body.id), body.status as OrderStatus);
+  }
+  if (body.action === "deleteOrder") {
+    await deleteOrder(Number(body.id));
   }
 
   return NextResponse.json(await getStoreData(true));

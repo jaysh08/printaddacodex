@@ -73,6 +73,15 @@ select {
   color: #f8f7f2;
 }
 
+.icon-link {
+  display: grid;
+  min-height: 48px;
+  min-width: 48px;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #f8f7f2;
+}
+
 .hero-grid {
   background:
     radial-gradient(circle at 75% 22%, rgba(46, 232, 121, 0.18), transparent 22%),
@@ -481,6 +490,55 @@ select {
   text-transform: uppercase;
 }
 
+.reserve-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(10px);
+}
+
+.reserve-modal {
+  width: min(100%, 520px);
+  border: 1px solid #d7d1c4;
+  background: #fffaf0;
+  padding: 20px;
+  color: #181714;
+  box-shadow: 0 30px 110px rgba(0, 0, 0, 0.46);
+}
+
+.reserve-field {
+  display: grid;
+  gap: 7px;
+  color: #57534e;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.reserve-field input,
+.reserve-field select,
+.reserve-field textarea,
+.studio-field textarea {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid #d7d1c4;
+  background: #fffaf0;
+  padding: 10px 12px;
+  color: #181714;
+  outline: none;
+}
+
+.reserve-field textarea,
+.studio-field textarea {
+  min-height: 88px;
+  resize: vertical;
+}
+
 .custom-copy p {
   margin-top: 22px;
   max-width: 640px;
@@ -676,7 +734,8 @@ select {
 }
 
 .studio-field input,
-.studio-field select {
+.studio-field select,
+.studio-field textarea {
   min-height: 44px;
   border: 1px solid rgba(255, 255, 255, 0.14);
   background: #080808;
@@ -760,6 +819,30 @@ select {
   font-weight: 900;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.admin-tab,
+.admin-filter {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid #d7d1c4;
+  background: #fffaf0;
+  padding: 0 14px;
+  color: #181714;
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.admin-tab.active,
+.admin-filter.active {
+  border-color: #181714;
+  background: #181714;
+  color: #fffaf0;
 }
 
 @media (max-width: 760px) {
