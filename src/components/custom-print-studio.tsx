@@ -25,7 +25,7 @@ export function CustomPrintStudio({
   const [artworkName, setArtworkName] = useState("my-custom-print");
   const [shirtColor, setShirtColor] = useState(shirtColors[0].value);
   const [placement, setPlacement] = useState("Front");
-  const [size, setSize] = useState(58);
+  const [size, setSize] = useState(75);
   const [zoom, setZoom] = useState(100);
   const [x, setX] = useState(0);
   const [y, setY] = useState(0);
@@ -56,7 +56,7 @@ export function CustomPrintStudio({
   }
 
   function resetLayout() {
-    setSize(58);
+    setSize(75);
     setZoom(100);
     setX(0);
     setY(0);
@@ -220,7 +220,7 @@ export function CustomPrintStudio({
               </label>
             </div>
 
-            <Slider label="Print size" value={size} min={28} max={86} suffix="%" onChange={setSize} />
+            <Slider label="Print size" value={size} min={40} max={95} suffix="%" onChange={setSize} />
             <Slider label="Crop zoom" value={zoom} min={70} max={180} suffix="%" onChange={setZoom} icon={<Scissors size={16} />} />
             <Slider label="Move left / right" value={x} min={-80} max={80} suffix="px" onChange={setX} />
             <Slider label="Move up / down" value={y} min={-80} max={80} suffix="px" onChange={setY} />
